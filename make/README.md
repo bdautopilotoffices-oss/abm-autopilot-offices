@@ -1,47 +1,88 @@
 # Make scenarios
 
-Six scenarios. Make holds no cadence logic: it reads a Supabase view, sends,
-and reports back. All the rules live in the database.
+Three scenarios, already created in team 3478981. All three are switched OFF.
 
-## Import
+| Scenario | ID | Trigger | Link |
+|---|---|---|---|
+| ABM - 8 day cadence engine | 7121711 | every hour | https://us2.make.com/3478981/scenarios/7121711/edit |
+| ABM - Intake leads from Claude | 7121713 | on demand | https://us2.make.com/3478981/scenarios/7121713/edit |
+| ABM - Catch replies | 7121719 | webhook | https://us2.make.com/3478981/scenarios/7121719/edit |
 
-For each JSON here: Make, Create a new scenario, three dots, Import Blueprint.
+## Why three and not one
 
-Then find and replace three placeholders in every imported scenario:
+Make allows exactly one trigger per scenario, and these three are triggered in
+three different ways: a clock, a manual call from Claude, and an inbound HTTP
+request from AiSensy. They cannot be merged.
 
-| Placeholder | Replace with | Where to get it |
-|---|---|---|
-| `__SUPABASE_URL__` | `https://xxxx.supabase.co` | Supabase, Project Settings, API |
-| `__SUPABASE_SERVICE_ROLE_KEY__` | the `service_role` key | same page. **Never put this in chat or in git.** |
-| `__AISENSY_API_KEY__` | your AiSensy key | AiSensy, Manage, API Key |
-| `__MAKE_HOOK_ID__` | the webhook id | created when you add the webhook in scenario 4 |
+What *was* merged is the cadence. All three WhatsApp touches plus the daily
+housekeeping used to be four separate scenarios. They are now one, with a
+router.
 
-## What each one does
+## The cadence engine, 7121711
 
-| File | Scenario | Runs | Reads | Then |
-|---|---|---|---|---|
-| `scenario-0-intake.json` | ABM 0, intake | on demand, called by Claude | nothing | `abm_intake()` |
-| `scenario-1-wa-intro.json` | ABM 1, Day 2 intro | hourly | `v_abm_due_wa_intro` | AiSensy `abm_intro_v1`, then `abm_mark_sent('wa_intro')` |
-| `scenario-2-wa-followup.json` | ABM 2, Day 6 follow-up | daily 11:00 | `v_abm_due_wa_followup` | AiSensy `abm_followup_v1`, then mark |
-| `scenario-3-wa-final.json` | ABM 3, Day 8 final | daily 11:30 | `v_abm_due_wa_final` | AiSensy `abm_final_v1`, then mark |
-| `scenario-4-replies.json` | ABM 4, replies | on webhook | AiSensy payload | `abm_record_reply()` |
-| `scenario-5-housekeeping.json` | ABM 5, housekeeping | daily 02:00 | nothing | `abm_expire_sequences()` |
+Runs hourly. One pass does everything:
+
+```
+1  POST rpc/abm_expire_sequences        close day 9+, park for 60 days
+2  Router
+   |
+   +-- 3  GET v_abm_due_wa_intro        Day 2
+   |   4  Iterator
+   |   5  AiSensy abm_intro_v1
+   |   6  POST rpc/abm_mark_sent wa_intro
+   |
+   +-- 7  GET v_abm_due_wa_followup     Day 6
+   |   8  Iterator
+   |   9  AiSensy abm_followup_v1
+   |  10  POST rpc/abm_mark_sent wa_followup
+   |
+   +-- 11 GET v_abm_due_wa_final        Day 8
+       12 Iterator
+       13 AiSensy abm_final_v1
+       14 POST rpc/abm_mark_sent wa_final
+```
+
+Housekeeping runs first on purpose: a lead that should have been stopped is
+stopped before any branch can message them.
+
+Running hourly is safe even though two of the three touches are "daily". The
+database decides who is due, and once `wa_followup_sent_at` is stamped the
+lead drops out of that queue. Make cannot double-send even if it runs sixty
+times a day.
+
+## What you still have to fill in
+
+Open each scenario and replace these. They are the only things missing.
+
+| Placeholder | Where to get it |
+|---|---|
+| `__SUPABASE_SERVICE_ROLE_KEY__` | Supabase, Project Settings, API, `service_role`. Appears in 10 places in 7121711, 1 in 7121713, 1 in 7121719. |
+| `__AISENSY_API_KEY__` | AiSensy, Manage, API Key. 3 places in 7121711. |
+
+The Supabase project URL is already filled in everywhere.
+
+Tip: in the Make editor use the scenario's three-dot menu, Export Blueprint,
+find-and-replace in a text editor, then Import Blueprint. Faster than clicking
+into ten modules.
+
+## Reply webhook
+
+```
+https://hook.us2.make.com/v6of5m2bkx2g8ronm4chsf63trui3exu
+```
+
+Paste this into AiSensy's webhook setting. This is a new hook created for
+scenario 7121719. The old URL from the sheet-based build is retired.
+
+## Still unverified
+
+Scenario 7121719 reads `{{1.phone}}` and `{{1.text}}`. Those field names are a
+guess at AiSensy's payload. Before going live: switch the scenario on, send one
+real WhatsApp reply, open the execution history, see what actually arrived, and
+correct the two references. This is the most likely thing to break.
 
 ## The old scenarios
 
-The four sheet-based scenarios in the Make account (7120707, 7108734, 7108740,
-7108746) are superseded by these. Leave them switched OFF, or delete them once
-these are running. Do not run both: they would double-message.
-
-## Scenario 4 needs checking against a real payload
-
-`abm_record_reply` is called with `{{1.phone}}` and `{{1.text}}`. Those field
-names are a guess at what AiSensy posts. Before going live, run the webhook in
-Make, send one real WhatsApp reply, look at what actually arrives, and fix the
-two field references if they differ. This is the single most likely thing to
-be wrong on first run.
-
-## Operations cost
-
-Roughly 4 operations per lead per touch. A 50-lead batch over 8 days is about
-600 to 700 operations.
+7120707, 7108734, 7108740 and 7108746 are the sheet-based build and are
+superseded. Leave them OFF or delete them. Never run both sets: they would
+double-message every lead.

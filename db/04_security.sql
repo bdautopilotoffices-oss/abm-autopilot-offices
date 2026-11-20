@@ -30,14 +30,29 @@ alter view v_abm_pipeline         set (security_invoker = on);
 alter view v_abm_funnel           set (security_invoker = on);
 
 -- The RPCs write data. Only service_role may call them.
-revoke execute on function abm_intake(text,text,jsonb)            from anon, authenticated;
-revoke execute on function abm_mark_sent(uuid,text)               from anon, authenticated;
-revoke execute on function abm_record_reply(text,text,text,text)  from anon, authenticated;
-revoke execute on function abm_record_answers(uuid,int,text,text) from anon, authenticated;
-revoke execute on function abm_mark_called(uuid,text)             from anon, authenticated;
-revoke execute on function abm_set_stage(uuid,text)               from anon, authenticated;
-revoke execute on function abm_add_dnc(text,text,text,text,text)  from anon, authenticated;
-revoke execute on function abm_expire_sequences()                 from anon, authenticated;
+--
+-- IMPORTANT: Postgres grants EXECUTE on every new function to PUBLIC, and
+-- anon and authenticated inherit that. Revoking from the two roles alone
+-- leaves the PUBLIC grant intact and the function still callable. A probe
+-- caught exactly this: anon could still call abm_intake. Always revoke from
+-- public as well.
+revoke execute on all functions in schema public from public, anon, authenticated;
+
+-- service_role is what Make authenticates as. It bypasses RLS but still needs
+-- ordinary grants, and tables created outside Supabase's normal migration path
+-- do not get them automatically. Without this block Make is locked out too,
+-- which a probe also caught.
+grant usage   on schema public to service_role;
+grant all privileges on all tables    in schema public to service_role;
+grant all privileges on all sequences in schema public to service_role;
+grant execute on all functions        in schema public to service_role;
+
+alter default privileges in schema public grant all     on tables    to service_role;
+alter default privileges in schema public grant all     on sequences to service_role;
+alter default privileges in schema public grant execute on functions to service_role;
+
+revoke all on all tables    in schema public from anon, authenticated;
+revoke all on all sequences in schema public from anon, authenticated;
 
 -- Pin search_path on every function. Without this a caller can prepend a
 -- schema of their own and shadow the tables these functions touch.
