@@ -1,0 +1,72 @@
+{
+  "flow": [
+    {
+      "id": 1,
+      "mapper": {},
+      "module": "google-sheets:watchRows",
+      "version": 2,
+      "metadata": { "designer": { "x": 0, "y": 0 } },
+      "parameters": {
+        "mode": "map",
+        "limit": 10,
+        "sheetId": "Untitled",
+        "__IMTCONN__": 12450410,
+        "spreadsheetId": "1v_PegL5zdNzUNMQ8vLzqoQQiAk8oEy7VbKXtMiE_Qqo",
+        "tableFirstRow": "A1:T1",
+        "includesHeaders": true
+      }
+    },
+    {
+      "id": 2,
+      "filter": {
+        "name": "HOT or WARM, has phone, not yet sent",
+        "conditions": [
+          [
+            { "a": "{{1.`9`}}", "b": "HOT", "o": "text:equal:ci" },
+            { "a": "{{1.`2`}}", "o": "exist" },
+            { "a": "{{1.`13`}}", "o": "notexist" }
+          ],
+          [
+            { "a": "{{1.`9`}}", "b": "WARM", "o": "text:equal:ci" },
+            { "a": "{{1.`2`}}", "o": "exist" },
+            { "a": "{{1.`13`}}", "o": "notexist" }
+          ]
+        ]
+      },
+      "mapper": {
+        "qs": [],
+        "url": "https://backend.aisensy.com/campaign/t1/api/v2",
+        "data": "{\n  \"apiKey\": \"PASTE_YOUR_AISENSY_API_KEY_HERE\",\n  \"campaignName\": \"andheri_intro\",\n  \"destination\": \"{{1.`2`}}\",\n  \"userName\": \"{{1.`0`}}\",\n  \"source\": \"{{1.`17`}}\",\n  \"templateParams\": [\"{{1.`0`}}\", \"{{1.`4`}}\"],\n  \"attributes\": {\"company\": \"{{1.`4`}}\", \"company_location\": \"{{1.`6`}}\", \"score\": \"{{1.`9`}}\", \"campaign\": \"{{1.`17`}}\", \"target_office\": \"{{1.`18`}}\"}\n}",
+        "method": "post",
+        "headers": [],
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "parseResponse": true
+      },
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": { "designer": { "x": 300, "y": 0 } },
+      "parameters": { "handleErrors": true, "useNewZLibDeCompress": true }
+    },
+    {
+      "id": 3,
+      "mapper": {
+        "mode": "map",
+        "values": { "13": "Sent", "14": "{{formatDate(now; \"DD/MM/YYYY\")}}" },
+        "sheetId": "Untitled",
+        "rowNumber": "{{1.`__ROW_NUMBER__`}}",
+        "spreadsheetId": "1v_PegL5zdNzUNMQ8vLzqoQQiAk8oEy7VbKXtMiE_Qqo",
+        "tableFirstRow": "A1:Z1",
+        "valueInputOption": "USER_ENTERED"
+      },
+      "module": "google-sheets:updateRow",
+      "version": 2,
+      "metadata": { "designer": { "x": 600, "y": 0 } },
+      "parameters": { "__IMTCONN__": 12450410 }
+    }
+  ],
+  "name": "ABM 1 - Send WhatsApp intro (AiSensy)",
+  "metadata": { "instant": false, "version": 1 },
+  "scheduling": { "type": "indefinitely", "interval": 3600 },
+  "interface": { "input": [], "output": [] }
+}
