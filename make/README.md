@@ -56,8 +56,8 @@ Open each scenario and replace these. They are the only things missing.
 
 | Placeholder | Where to get it |
 |---|---|
-| `__SUPABASE_SERVICE_ROLE_KEY__` | Supabase, Project Settings, API, `service_role`. Appears in 10 places in 7121711, 1 in 7121713, 1 in 7121719. |
-| `__AISENSY_API_KEY__` | AiSensy, Manage, API Key. 3 places in 7121711. |
+| `__SUPABASE_SERVICE_ROLE_KEY__` | Supabase, Project Settings, API, `service_role`. Appears 14 times in 7121711, twice in 7121713, twice in 7121719 (each HTTP module carries it in two headers: `apikey` and `Authorization`). |
+| `__AISENSY_API_KEY__` | AiSensy, Manage, API Key. 3 times in 7121711, inside the Request content box of modules 5, 9 and 13. |
 
 The Supabase project URL is already filled in everywhere.
 
