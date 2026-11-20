@@ -16,7 +16,7 @@
         "useNewZLibDeCompress": true
       },
       "mapper": {
-        "url": "__SUPABASE_URL__/rest/v1/rpc/abm_expire_sequences",
+        "url": "https://vvozzvbwduoruozsphxa.supabase.co/rest/v1/rpc/abm_expire_sequences",
         "method": "post",
         "headers": [
           {

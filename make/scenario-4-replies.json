@@ -32,7 +32,7 @@
         "useNewZLibDeCompress": true
       },
       "mapper": {
-        "url": "__SUPABASE_URL__/rest/v1/rpc/abm_record_reply",
+        "url": "https://vvozzvbwduoruozsphxa.supabase.co/rest/v1/rpc/abm_record_reply",
         "method": "post",
         "headers": [
           {

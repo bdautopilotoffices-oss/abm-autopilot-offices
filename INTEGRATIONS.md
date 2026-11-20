@@ -8,21 +8,24 @@ block the rest, all of them marked BLOCKING below.
 
 ---
 
-## 1. Supabase, the system of record  — **you**, 10 minutes  — BLOCKING
+## 1. Supabase, the system of record  — **DONE**
 
-Replaces the Google Sheet. The sheet could not dedup, could not stop one
-channel when another got a reply, and had no pipeline stage. A database does
-all three.
+Project `ABM_Project` (`vvozzvbwduoruozsphxa`), API URL
+`https://vvozzvbwduoruozsphxa.supabase.co`.
 
-1. Open your Supabase project, or create one for this.
-2. SQL editor, run these in order. All idempotent, safe to re-run:
-   `db/01_schema.sql`, then `db/02_views.sql`, then `db/03_functions.sql`.
-3. Optional but recommended: run `db/99_test.sql` on a throwaway project
-   first. It prints 26 PASS lines. If any says FAIL, stop.
-4. Project Settings, API. Copy the Project URL and the `service_role` key.
+Applied and verified from this session:
 
-**Send me:** the Project URL only.
-**Do not send:** the `service_role` key. It goes straight into Make.
+- `01_schema.sql`, `02_views.sql`, `03_functions.sql`, `04_security.sql`
+- the test suite ran against this live database: 25 of 25 PASS
+- all test data removed afterwards, the tables are empty
+- RLS enabled on all three tables with no policies, so anon and authenticated
+  can read and write nothing. Only `service_role` has access, which is what
+  Make uses.
+- `search_path` pinned on all 14 functions
+- write RPCs revoked from anon and authenticated
+
+**Nothing left to do here.** The `service_role` key still needs to go into
+Make, in step 3.
 
 ---
 
@@ -109,9 +112,9 @@ spreadsheet view, a daily one-way mirror from Supabase is easy to add.
 
 | # | Step | Who | Time |
 |---|---|---|---|
-| 1 | Run the three SQL files in Supabase | you | 10 min |
+| 1 | ~~Run the SQL files in Supabase~~ | **done** | |
 | 2 | Create and submit the three WhatsApp templates | you | 30 min + Meta wait |
-| 3 | Send me the Supabase Project URL | you | 1 min |
+| 3 | ~~Send me the Supabase Project URL~~ | **done** | |
 | 4 | Import the six Make blueprints, fill the placeholders | you | 15 min |
 | 5 | Create the AiSensy API campaigns, Set Live | you | 10 min |
 | 6 | Paste the webhook into AiSensy | you | 2 min |
@@ -120,4 +123,4 @@ spreadsheet view, a daily one-way mirror from Supabase is easy to add.
 | 9 | Load 10 leads, test run | both | 1 day |
 | 10 | Full run | | |
 
-Steps 1 and 2 are the long poles. Everything after is minutes.
+Step 2, the WhatsApp templates, is now the only long pole. Everything else is minutes.

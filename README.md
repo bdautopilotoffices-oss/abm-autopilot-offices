@@ -49,10 +49,10 @@ Day 9 park for 60 days. Full detail in `CADENCE.md`.
 
 | Component | State |
 |---|---|
-| Supabase schema, queues, RPCs | built, 26 of 26 tests pass on PostgreSQL 16 |
+| Supabase schema, queues, RPCs | **LIVE in project `ABM_Project`**, 25 of 25 tests pass |
 | Message library, 4 personas | written |
-| Make blueprints, 6 scenarios | written, need the Supabase URL and two keys |
-| Supabase project | **not yet created, blocking** |
+| Make blueprints, 6 scenarios | written, URL baked in, need two keys pasted |
+| Supabase project | **created, schema applied, RLS on, tests green** |
 | WhatsApp templates in AiSensy | **not yet created, blocking** |
 | Oppora lead data | 72 leads, 59 companies ready |
 | Phone numbers | **not enriched yet**, 0 of 72 |
@@ -63,6 +63,8 @@ Day 9 park for 60 days. Full detail in `CADENCE.md`.
 
 | Part | Identifier |
 |---|---|
+| Supabase project | `vvozzvbwduoruozsphxa`, `ABM_Project`, ap-northeast-1 |
+| Supabase API URL | `https://vvozzvbwduoruozsphxa.supabase.co` |
 | Make team | 3478981 |
 | Google Sheets connection in Make | 12450410 |
 | Oppora list | 28836, `Andheri ABM - Master` |

@@ -16,7 +16,7 @@
         "useNewZLibDeCompress": true
       },
       "mapper": {
-        "url": "__SUPABASE_URL__/rest/v1/rpc/abm_intake",
+        "url": "https://vvozzvbwduoruozsphxa.supabase.co/rest/v1/rpc/abm_intake",
         "method": "post",
         "headers": [
           {

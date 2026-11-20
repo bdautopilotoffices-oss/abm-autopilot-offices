@@ -16,7 +16,7 @@
         "useNewZLibDeCompress": true
       },
       "mapper": {
-        "url": "__SUPABASE_URL__/rest/v1/v_abm_due_wa_intro?select=id,first_name,company,phone,score,campaign,why_now",
+        "url": "https://vvozzvbwduoruozsphxa.supabase.co/rest/v1/v_abm_due_wa_intro?select=id,first_name,company,phone,score,campaign,why_now",
         "method": "get",
         "headers": [
           {
@@ -88,7 +88,7 @@
         "useNewZLibDeCompress": true
       },
       "mapper": {
-        "url": "__SUPABASE_URL__/rest/v1/rpc/abm_mark_sent",
+        "url": "https://vvozzvbwduoruozsphxa.supabase.co/rest/v1/rpc/abm_mark_sent",
         "method": "post",
         "headers": [
           {
