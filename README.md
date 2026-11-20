@@ -1,61 +1,72 @@
 # ABM Outbound System, Autopilot Offices
 
-Source of truth for the account based marketing system that finds companies who
-might want a managed office in Andheri East and reaches them on WhatsApp and
-LinkedIn at the same time.
+Finds growing companies in and around Andheri, reaches the decision makers on
+LinkedIn, WhatsApp and phone over 8 days, and books site visits.
 
-Everything here is configuration and copy. There is no application code.
+Configuration, copy and schema. No application code.
 
 ## How it works
 
-One Google Sheet is the brain. Two channels run off it in parallel.
-
 ```
-Claude (Oppora search + scoring)
-        |
-        v
-  Make scenario 0  ──────> ABM Leads Master sheet
-   (on demand)                    |
-                                  |
-          ┌───────────────────────┴───────────────────────┐
-          v                                               v
-  Make scenarios 1 & 2                            Oppora campaign 15491
-  WhatsApp via AiSensy                            LinkedIn sequence
-  intro hourly, follow-up daily 11:00             day 0 / 1 / 3 / 7
-          |                                               |
-          v                                               v
-  Make scenario 3                                 replies land in Oppora inbox
-  catches replies, writes them back
-  to the sheet and stops follow-ups
+Claude + Oppora                 find and score 50 decision makers
+      |
+      v
+Make "ABM 0"  --> abm_intake()  dedup, DNC check, clock starts
+      |
+      v
+          S U P A B A S E       the brain: who is due what, today
+      |              |
+      |              +--------------------------+
+      v                                         v
+Make reads a queue                      Oppora LinkedIn sequence
+sends via AiSensy                       connect, message, follow-up
+calls abm_mark_sent()                            |
+      |                                          |
+      +--------------+---------------------------+
+                     v
+              a reply on ANY channel
+              stops EVERY channel
 ```
 
-A lead gets a WhatsApp message within the hour and a LinkedIn touch the same
-day, from two directions, and neither channel knows about the other.
+## The 8-day sequence
+
+Day 1 LinkedIn connect, Day 2 WhatsApp intro, Day 3+ LinkedIn message once
+accepted, Day 4 to 5 cold call, Day 6 follow-up on both, Day 8 final on both,
+Day 9 park for 60 days. Full detail in `CADENCE.md`.
+
+## Repo map
+
+| Path | What |
+|---|---|
+| `INTEGRATIONS.md` | who has to do what, on which platform. **Start here.** |
+| `CADENCE.md` | the 8-day sequence, and what stops it |
+| `db/` | Supabase schema, queues, RPC layer, test suite |
+| `make/` | importable Make blueprints |
+| `templates/messages.md` | all copy, four personas, three channels |
+| `KNOWN_ISSUES.md` | what is still unverified |
+
+## Status
+
+| Component | State |
+|---|---|
+| Supabase schema, queues, RPCs | built, 26 of 26 tests pass on PostgreSQL 16 |
+| Message library, 4 personas | written |
+| Make blueprints, 6 scenarios | written, need the Supabase URL and two keys |
+| Supabase project | **not yet created, blocking** |
+| WhatsApp templates in AiSensy | **not yet created, blocking** |
+| Oppora lead data | 72 leads, 59 companies ready |
+| Phone numbers | **not enriched yet**, 0 of 72 |
+| LinkedIn account in Oppora | parked, waiting on the plan |
+| Reply alerts | deliberately not built yet |
 
 ## Moving parts
 
 | Part | Identifier |
 |---|---|
 | Make team | 3478981 |
-| Make org | 9687218 |
 | Google Sheets connection in Make | 12450410 |
-| Lead sheet | `1v_PegL5zdNzUNMQ8vLzqoQQiAk8oEy7VbKXtMiE_Qqo`, tab `Untitled` |
-| Oppora sequence campaign | 15491, `ABM_Andheri` |
-| AiSensy API endpoint | `https://backend.aisensy.com/campaign/t1/api/v2` |
-| AiSensy API campaigns | `andheri_intro`, `andheri_followup` |
+| Oppora list | 28836, `Andheri ABM - Master` |
+| Oppora LinkedIn campaign | 15491, `ABM_Andheri` |
+| AiSensy endpoint | `https://backend.aisensy.com/campaign/t1/api/v2` |
+| AiSensy campaigns | `abm_intro_v1`, `abm_followup_v1`, `abm_final_v1` |
 | Reply webhook | `https://hook.us2.make.com/7dqe6i2mfn2kfk58pb59sbitcsr6bvsx` |
-
-## Status
-
-| Component | State |
-|---|---|
-| Sheet, 20 columns A to T | built |
-| Make scenario 0, intake | built, switched ON, on demand only |
-| Make scenario 1, WhatsApp intro | built, switched OFF, needs AiSensy key |
-| Make scenario 2, WhatsApp follow-up | built, switched OFF, needs AiSensy key |
-| Make scenario 3, reply catcher | built, switched OFF, needs webhook registered in AiSensy |
-| Oppora LinkedIn sequence, 4 steps | built, draft, needs a LinkedIn account connected |
-| AiSensy templates | not created yet |
-| AiSensy API campaigns | not created yet |
-
-See `RUNBOOK.md` for what to do, and `KNOWN_ISSUES.md` before you trust it.

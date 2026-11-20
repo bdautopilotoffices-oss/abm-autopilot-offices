@@ -1,144 +1,123 @@
-# Integrations needed
+# Integrations: who does what
 
-Who does what, on which platform, to get this live. Items marked **you** need
-a human with an account login. Items marked **Claude** I can do from here.
+**you** means a human with an account login. **Claude** means I can do it from
+a chat session.
 
----
-
-## 1. Supabase, the system of record  — **you**, 10 minutes
-
-Replaces the Google Sheet as the place truth lives. The sheet could not do
-dedup, could not stop one channel when another got a reply, and could not hold
-a pipeline stage. A database does all three.
-
-**What to do**
-
-1. Open your Supabase project, or create a new one for this.
-2. Open the SQL editor.
-3. Run `db/01_schema.sql`, then `db/02_views.sql`, then `db/03_functions.sql`,
-   in that order. They are idempotent, so re-running is safe.
-4. Go to Project Settings, API, and copy two things:
-   - the Project URL
-   - the `service_role` key
-
-**What I need from you:** the Project URL only. Put the `service_role` key
-straight into Make as described below. Do not paste it into chat.
-
-**Why service_role and not anon:** these RPCs write data and must bypass row
-level security. The key only ever lives inside Make.
+Everything that can be built without your accounts is built. Three things
+block the rest, all of them marked BLOCKING below.
 
 ---
 
-## 2. AiSensy, WhatsApp  — **you**, 30 minutes plus Meta approval
+## 1. Supabase, the system of record  — **you**, 10 minutes  — BLOCKING
 
-**What to do**
+Replaces the Google Sheet. The sheet could not dedup, could not stop one
+channel when another got a reply, and had no pipeline stage. A database does
+all three.
 
-1. Manage, then Template Messages, then New Template. Create all three from
-   `templates/messages.md`: `abm_intro_v1`, `abm_followup_v1`, `abm_final_v1`.
-   Copy the bodies exactly. Meta rejects templates where two variables touch,
-   and these are written to avoid that.
-2. Submit and wait for Meta. Usually minutes, sometimes hours.
-3. Once approved, create one API campaign per template, named exactly the same
-   as the template, and Set Live.
-4. Manage, then API Key. Generate a key and keep it for step 4 below.
-5. Find the webhook setting and paste in the Make webhook URL from
-   `make/README.md`. Without this, replies never come back.
-6. Top up the message wallet. At roughly Rs 0.80 to 1 per message and three
-   messages per lead, 50 leads a week is about Rs 150 a week.
+1. Open your Supabase project, or create one for this.
+2. SQL editor, run these in order. All idempotent, safe to re-run:
+   `db/01_schema.sql`, then `db/02_views.sql`, then `db/03_functions.sql`.
+3. Optional but recommended: run `db/99_test.sql` on a throwaway project
+   first. It prints 26 PASS lines. If any says FAIL, stop.
+4. Project Settings, API. Copy the Project URL and the `service_role` key.
 
-**Blocking:** nothing in the WhatsApp track works until the templates are
-approved and the campaigns are Live.
+**Send me:** the Project URL only.
+**Do not send:** the `service_role` key. It goes straight into Make.
 
 ---
 
-## 3. Make, the orchestration  — **Claude builds, you paste two keys**
+## 2. AiSensy, WhatsApp  — **you**, 30 min + Meta approval  — BLOCKING
 
-I rebuild the scenarios to read Supabase views instead of the sheet. Seven
-scenarios replace the current four.
-
-**What you do:** open each scenario once and paste in
-- the Supabase `service_role` key
-- the AiSensy API key
-
-**What I do:** everything else.
-
----
-
-## 4. Oppora, lead data  — **mostly done**
-
-Already connected and working. 72 leads and 59 companies are sitting in
-`Andheri ABM - Master`.
-
-**One thing to decide:** phone enrichment. I tested three leads and got three
-valid numbers back, so the data is there. Enriching all 72 costs 72 of your
-112 remaining phone credits. Say go and I will run it.
-
-**Note:** one of the three came back as a US number for a Mumbai-based
-director. The schema rejects anything that is not a valid +91 mobile, so bad
-numbers are dropped rather than messaged. Expect roughly 10 to 20 percent of
-enriched numbers to be unusable.
+1. Manage, Template Messages, New Template. Create all three from
+   `templates/messages.md`, named exactly `abm_intro_v1`, `abm_followup_v1`,
+   `abm_final_v1`. Copy the bodies exactly: Meta rejects templates where two
+   variables touch, and these are written to avoid that.
+2. Submit and wait for Meta.
+3. Once approved, create one API campaign per template with the same name, and
+   Set Live.
+4. Manage, API Key. Generate one and keep it for Make.
+5. Webhook setting: paste the Make webhook URL from `make/README.md`.
+6. Top up the wallet. At about Re 1 a message and three messages a lead, 50
+   leads a week is roughly Rs 150 a week.
 
 ---
 
-## 5. LinkedIn  — **parked, your call**
+## 3. Make  — **you import, 15 minutes**  — BLOCKING on items 1 and 2
 
-Deferred until you have the Oppora LinkedIn plan. Nothing else is blocked by
-it: the WhatsApp track, the call list and the tracker all run without it.
+Six blueprints are written and sitting in `make/`. Import each one, then
+replace four placeholders. Full table in `make/README.md`.
 
-When you are ready it is one step: connect the LinkedIn account in Oppora, and
-the sequence that is already built in campaign 15491 starts working.
+`__SUPABASE_URL__`, `__SUPABASE_SERVICE_ROLE_KEY__`, `__AISENSY_API_KEY__`,
+`__MAKE_HOOK_ID__`.
 
----
-
-## 6. Reply alerts  — **needs a decision from you**
-
-Right now a hot reply would land in a database row and nobody would know.
-That is the single biggest operational gap after the data itself.
-
-Pick one and I will build it:
-
-- a WhatsApp message to your own number the moment someone says yes
-- an email to you and the BD associates
-- a daily 9am digest instead of instant alerts
-
-Instant is better for interested replies, digest is fine for the rest.
+Leave the four old sheet-based scenarios switched OFF. Running both would
+double-message every lead.
 
 ---
 
-## 7. Google Sheets  — **demoted, not deleted**
+## 4. Oppora, lead data  — **connected and working**
 
-The sheet stops being the brain and becomes a read-only mirror for anyone who
-wants to look at a spreadsheet. Make writes to it from Supabase once a day. No
-automation reads from it any more.
+72 leads and 59 companies are in `Andheri ABM - Master`, list 28836.
+
+**Phone enrichment is not done.** All 72 have no number. A 3-lead test
+returned 3 valid numbers, so it works; it just has not been run. 72 credits of
+your 112 remaining. Say go when you want it.
 
 ---
 
-## Cost, monthly
+## 5. LinkedIn  — **parked**
+
+Waiting on the Oppora LinkedIn plan, about Rs 2,000. Nothing else is blocked
+by it: WhatsApp, the call list and the tracker all run without it.
+
+When you are ready: connect the account in Oppora and the 4-step sequence
+already built in campaign 15491 starts working. One extra piece will be needed
+then, pushing the DNC list across to Oppora, noted in `KNOWN_ISSUES.md`.
+
+---
+
+## 6. Reply alerts  — **deferred, your call**
+
+Not built, by your instruction. The groundwork is in: `abm_record_reply`
+returns an `alert` flag and `v_abm_new_replies` ranks interested replies
+first. Wiring a WhatsApp, email or morning digest is a small addition later.
+
+---
+
+## 7. Google Sheets  — **demoted**
+
+No longer the brain and no automation reads it. If you still want a
+spreadsheet view, a daily one-way mirror from Supabase is easy to add.
+
+---
+
+## Cost
 
 | Item | Cost | Status |
 |---|---|---|
-| Oppora lead data | already bought | extra credits only if you scale |
-| Oppora phone credits | 112 left, 72 needed for this batch | already bought |
-| Oppora LinkedIn | about Rs 2,000 | not yet bought |
+| Oppora lead data | bought | extra credits only if you scale |
+| Oppora phone credits | 112 left, 72 needed | bought, not spent |
+| Oppora LinkedIn | about Rs 2,000 | not bought |
 | AiSensy wallet | Rs 2,000 to 3,000 | top-up needed |
-| Supabase | free tier is enough at this volume | may already have one |
-| Make | depends on your plan, this uses roughly 400 operations per 50-lead batch | already bought |
-| Claude | already bought | |
+| Supabase | free tier is enough here | may already exist |
+| Make | about 600 to 700 operations per 50-lead batch | bought |
+| Claude | bought | |
 
 ---
 
 ## Order of operations
 
-1. Run the three SQL files in Supabase  (**you**, 10 min)
-2. Create and submit the three WhatsApp templates  (**you**, 30 min, then wait for Meta)
-3. Send me the Supabase project URL  (**you**, 1 min)
-4. I rebuild the Make scenarios against Supabase  (**Claude**)
-5. You paste the two keys into Make  (**you**, 5 min)
-6. Create the AiSensy API campaigns and set them Live  (**you**, 10 min)
-7. Paste the webhook into AiSensy  (**you**, 2 min)
-8. I enrich phones and load the first batch  (**Claude**)
-9. Test run on 10 leads  (**both**)
-10. Full run
+| # | Step | Who | Time |
+|---|---|---|---|
+| 1 | Run the three SQL files in Supabase | you | 10 min |
+| 2 | Create and submit the three WhatsApp templates | you | 30 min + Meta wait |
+| 3 | Send me the Supabase Project URL | you | 1 min |
+| 4 | Import the six Make blueprints, fill the placeholders | you | 15 min |
+| 5 | Create the AiSensy API campaigns, Set Live | you | 10 min |
+| 6 | Paste the webhook into AiSensy | you | 2 min |
+| 7 | Check the real reply payload, fix field names | both | 10 min |
+| 8 | Enrich phone numbers | Claude | 5 min |
+| 9 | Load 10 leads, test run | both | 1 day |
+| 10 | Full run | | |
 
-Steps 1, 2 and 3 are the only things blocking me. Everything else I can do or
-is a two-minute paste.
+Steps 1 and 2 are the long poles. Everything after is minutes.

@@ -35,7 +35,7 @@ where abm_is_live(l)
   and l.li_message_sent_at is null
   and abm_day(l.sequence_start) >= 3;
 
--- Day 4 to 6, the human call list. Deliberately NOT abm_is_live: the diagram
+-- Day 4 to 5, the human call list. Deliberately NOT abm_is_live: the diagram
 -- says HOT leads AND anyone who replied, and a reply is a reason to call, not
 -- a reason to stop. DNC is still respected.
 create or replace view v_abm_call_list as
@@ -52,11 +52,11 @@ where not abm_is_dnc(l)
   and abm_is_sendable_phone(l.phone)
   and (
         l.replied_at is not null
-     or (l.score = 'HOT' and abm_day(l.sequence_start) between 4 and 6)
+     or (l.score = 'HOT' and abm_day(l.sequence_start) between 4 and 5)
   )
 order by priority, l.score, l.company;
 
--- Day 8, follow-up one. WhatsApp and LinkedIn are separate rows to send.
+-- Day 6, follow-up one. WhatsApp and LinkedIn are separate rows to send.
 create or replace view v_abm_due_wa_followup as
 select l.*, abm_day(l.sequence_start) as day_n
 from abm_leads l
@@ -65,7 +65,7 @@ where abm_is_live(l)
   and abm_is_sendable_phone(l.phone)
   and l.wa_intro_sent_at is not null
   and l.wa_followup_sent_at is null
-  and abm_day(l.sequence_start) >= 8;
+  and abm_day(l.sequence_start) >= 6;
 
 create or replace view v_abm_due_li_followup as
 select l.*, abm_day(l.sequence_start) as day_n
@@ -74,9 +74,9 @@ where abm_is_live(l)
   and l.li_connected_at is not null
   and l.li_message_sent_at is not null
   and l.li_followup_sent_at is null
-  and abm_day(l.sequence_start) >= 8;
+  and abm_day(l.sequence_start) >= 6;
 
--- Day 14, final follow-up, then the sequence ends.
+-- Day 8, final follow-up, then the sequence ends.
 create or replace view v_abm_due_wa_final as
 select l.*, abm_day(l.sequence_start) as day_n
 from abm_leads l
@@ -85,7 +85,7 @@ where abm_is_live(l)
   and abm_is_sendable_phone(l.phone)
   and l.wa_followup_sent_at is not null
   and l.wa_final_sent_at is null
-  and abm_day(l.sequence_start) >= 14;
+  and abm_day(l.sequence_start) >= 8;
 
 create or replace view v_abm_due_li_final as
 select l.*, abm_day(l.sequence_start) as day_n
@@ -94,14 +94,14 @@ where abm_is_live(l)
   and l.li_connected_at is not null
   and l.li_followup_sent_at is not null
   and l.li_final_sent_at is null
-  and abm_day(l.sequence_start) >= 14;
+  and abm_day(l.sequence_start) >= 8;
 
--- Past day 14 with no reply. These get closed and parked for 60 days.
+-- Past day 8 with no reply. These get closed and parked for 60 days.
 create or replace view v_abm_to_expire as
 select l.*, abm_day(l.sequence_start) as day_n
 from abm_leads l
 where abm_is_live(l)
-  and abm_day(l.sequence_start) > 14;
+  and abm_day(l.sequence_start) > 8;
 
 -- Leads parked 60 days ago that may be approached again.
 create or replace view v_abm_retry_ready as

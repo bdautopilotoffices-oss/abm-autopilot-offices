@@ -1,71 +1,127 @@
 {
+  "name": "ABM 2 - Day 6 WhatsApp follow-up",
   "flow": [
     {
       "id": 1,
-      "mapper": {
-        "mode": "map",
-        "limit": 20,
-        "filter": [
-          [
-            { "a": "N", "b": "Sent", "o": "text:equal" },
-            { "a": "P", "o": "empty" },
-            { "a": "Q", "o": "empty" }
-          ]
-        ],
-        "sheetId": "Untitled",
-        "spreadsheetId": "1v_PegL5zdNzUNMQ8vLzqoQQiAk8oEy7VbKXtMiE_Qqo",
-        "tableFirstRow": "A1:Z1",
-        "includesHeaders": true
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
       },
-      "module": "google-sheets:filterRows",
-      "version": 2,
-      "metadata": { "designer": { "x": 0, "y": 0 } },
-      "parameters": { "__IMTCONN__": 12450410 }
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "__SUPABASE_URL__/rest/v1/v_abm_due_wa_followup?select=id,first_name,company,phone,score,campaign,why_now",
+        "method": "get",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "__SUPABASE_SERVICE_ROLE_KEY__"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer __SUPABASE_SERVICE_ROLE_KEY__"
+          }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true
+      }
     },
     {
       "id": 2,
-      "filter": {
-        "name": "Intro sent 6 or more days ago",
-        "conditions": [
-          [
-            { "a": "{{parseDate(1.`14`; \"DD/MM/YYYY\")}}", "b": "{{addDays(now; -6)}}", "o": "date:lessorequal" }
-          ]
-        ]
+      "module": "builtin:BasicFeeder",
+      "version": 1,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
       },
+      "parameters": {},
       "mapper": {
-        "qs": [],
-        "url": "https://backend.aisensy.com/campaign/t1/api/v2",
-        "data": "{\n  \"apiKey\": \"PASTE_YOUR_AISENSY_API_KEY_HERE\",\n  \"campaignName\": \"andheri_followup\",\n  \"destination\": \"{{1.`2`}}\",\n  \"userName\": \"{{1.`0`}}\",\n  \"source\": \"{{1.`17`}}\",\n  \"templateParams\": [\"{{1.`0`}}\"]\n}",
-        "method": "post",
-        "headers": [],
-        "bodyType": "raw",
-        "contentType": "application/json",
-        "parseResponse": true
-      },
-      "module": "http:ActionSendData",
-      "version": 3,
-      "metadata": { "designer": { "x": 300, "y": 0 } },
-      "parameters": { "handleErrors": true, "useNewZLibDeCompress": true }
+        "array": "{{1.data}}"
+      }
     },
     {
       "id": 3,
-      "mapper": {
-        "mode": "map",
-        "values": { "15": "Sent {{formatDate(now; \"DD/MM/YYYY\")}}" },
-        "sheetId": "Untitled",
-        "rowNumber": "{{1.`__ROW_NUMBER__`}}",
-        "spreadsheetId": "1v_PegL5zdNzUNMQ8vLzqoQQiAk8oEy7VbKXtMiE_Qqo",
-        "tableFirstRow": "A1:Z1",
-        "valueInputOption": "USER_ENTERED"
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
       },
-      "module": "google-sheets:updateRow",
-      "version": 2,
-      "metadata": { "designer": { "x": 600, "y": 0 } },
-      "parameters": { "__IMTCONN__": 12450410 }
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "https://backend.aisensy.com/campaign/t1/api/v2",
+        "method": "post",
+        "headers": [],
+        "qs": [],
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "data": "{\n  \"apiKey\": \"__AISENSY_API_KEY__\",\n  \"campaignName\": \"abm_followup_v1\",\n  \"destination\": \"{{2.phone}}\",\n  \"userName\": \"{{2.first_name}}\",\n  \"source\": \"{{2.campaign}}\",\n  \"templateParams\": [\n    \"{{2.first_name}}\",\n    \"{{2.company}}\"\n  ],\n  \"attributes\": {\n    \"company\": \"{{2.company}}\",\n    \"score\": \"{{2.score}}\",\n    \"lead_id\": \"{{2.id}}\"\n  }\n}",
+        "parseResponse": true
+      }
+    },
+    {
+      "id": 4,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0
+        }
+      },
+      "parameters": {
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "__SUPABASE_URL__/rest/v1/rpc/abm_mark_sent",
+        "method": "post",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "__SUPABASE_SERVICE_ROLE_KEY__"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer __SUPABASE_SERVICE_ROLE_KEY__"
+          },
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "contentType": "application/json",
+        "data": "{\n  \"p_lead\": \"{{2.id}}\",\n  \"p_touch\": \"wa_followup\"\n}",
+        "parseResponse": true
+      }
     }
   ],
-  "name": "ABM 2 - Day 8 WhatsApp follow-up (AiSensy)",
-  "metadata": { "instant": false, "version": 1 },
-  "scheduling": { "time": "11:00", "type": "daily" },
-  "interface": { "input": [], "output": [] }
+  "metadata": {
+    "instant": false,
+    "version": 1
+  },
+  "scheduling": {
+    "type": "daily",
+    "time": "11:00"
+  },
+  "interface": {
+    "input": [],
+    "output": []
+  }
 }

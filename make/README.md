@@ -1,51 +1,47 @@
 # Make scenarios
 
-Team 3478981. Google Sheets connection `12450410`.
+Six scenarios. Make holds no cadence logic: it reads a Supabase view, sends,
+and reports back. All the rules live in the database.
 
-| # | Scenario | ID | Schedule | On? |
-|---|---|---|---|---|
-| 0 | ABM 0, intake leads from Claude | 7120707 | on demand | yes |
-| 1 | ABM 1, send WhatsApp intro | 7108734 | every 3600s | no |
-| 2 | ABM 2, day 8 WhatsApp follow-up | 7108740 | daily 11:00 | no |
-| 3 | ABM 3, catch WhatsApp replies | 7108746 | immediately, webhook | no |
+## Import
 
-Edit links:
+For each JSON here: Make, Create a new scenario, three dots, Import Blueprint.
 
-- https://us2.make.com/3478981/scenarios/7120707/edit
-- https://us2.make.com/3478981/scenarios/7108734/edit
-- https://us2.make.com/3478981/scenarios/7108740/edit
-- https://us2.make.com/3478981/scenarios/7108746/edit
+Then find and replace three placeholders in every imported scenario:
+
+| Placeholder | Replace with | Where to get it |
+|---|---|---|
+| `__SUPABASE_URL__` | `https://xxxx.supabase.co` | Supabase, Project Settings, API |
+| `__SUPABASE_SERVICE_ROLE_KEY__` | the `service_role` key | same page. **Never put this in chat or in git.** |
+| `__AISENSY_API_KEY__` | your AiSensy key | AiSensy, Manage, API Key |
+| `__MAKE_HOOK_ID__` | the webhook id | created when you add the webhook in scenario 4 |
 
 ## What each one does
 
-**0, intake.** On demand only, so it runs when Claude calls it and never on a
-clock. Takes `campaign`, `target_office` and an array of `leads`, iterates with
-a BasicFeeder and appends a row per lead.
+| File | Scenario | Runs | Reads | Then |
+|---|---|---|---|---|
+| `scenario-0-intake.json` | ABM 0, intake | on demand, called by Claude | nothing | `abm_intake()` |
+| `scenario-1-wa-intro.json` | ABM 1, Day 2 intro | hourly | `v_abm_due_wa_intro` | AiSensy `abm_intro_v1`, then `abm_mark_sent('wa_intro')` |
+| `scenario-2-wa-followup.json` | ABM 2, Day 6 follow-up | daily 11:00 | `v_abm_due_wa_followup` | AiSensy `abm_followup_v1`, then mark |
+| `scenario-3-wa-final.json` | ABM 3, Day 8 final | daily 11:30 | `v_abm_due_wa_final` | AiSensy `abm_final_v1`, then mark |
+| `scenario-4-replies.json` | ABM 4, replies | on webhook | AiSensy payload | `abm_record_reply()` |
+| `scenario-5-housekeeping.json` | ABM 5, housekeeping | daily 02:00 | nothing | `abm_expire_sequences()` |
 
-**1, intro.** Watches the sheet hourly, 10 rows at a time. Filter passes a row
-when score is HOT or WARM, column C has a phone, and column N is empty. Posts
-to AiSensy campaign `andheri_intro` with first name and company as template
-params, then stamps N as `Sent` and O with today's date.
+## The old scenarios
 
-**2, follow-up.** Daily at 11:00. Pulls up to 20 rows where N is `Sent`, P is
-empty and Q is empty, then filters to rows where O is six or more days old.
-Posts to `andheri_followup`, then stamps P.
+The four sheet-based scenarios in the Make account (7120707, 7108734, 7108740,
+7108746) are superseded by these. Leave them switched OFF, or delete them once
+these are running. Do not run both: they would double-message.
 
-**3, replies.** Webhook `3086812`, fires immediately on delivery. Matches the
-caller's phone against column C and stamps Q with `Yes` and a timestamp. That
-non empty Q is what stops scenario 2 from following up.
+## Scenario 4 needs checking against a real payload
 
-## Webhook
+`abm_record_reply` is called with `{{1.phone}}` and `{{1.text}}`. Those field
+names are a guess at what AiSensy posts. Before going live, run the webhook in
+Make, send one real WhatsApp reply, look at what actually arrives, and fix the
+two field references if they differ. This is the single most likely thing to
+be wrong on first run.
 
-```
-https://hook.us2.make.com/7dqe6i2mfn2kfk58pb59sbitcsr6bvsx
-```
+## Operations cost
 
-Anyone holding this URL can post fake replies into the sheet. It is not a
-secret with teeth, but keep it in this private repo rather than anywhere public.
-
-## Restoring a scenario
-
-Open the scenario in Make, three dots, Import Blueprint, pick the JSON here.
-The blueprints carry `PASTE_YOUR_AISENSY_API_KEY_HERE` rather than a real key,
-so re-enter the key after importing scenario 1 or 2.
+Roughly 4 operations per lead per touch. A 50-lead batch over 8 days is about
+600 to 700 operations.

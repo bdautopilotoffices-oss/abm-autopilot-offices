@@ -1,33 +1,29 @@
-# The 14-day cadence
+# The 8-day cadence
 
-This is the sequence from the process diagram, written out as the system
-implements it. Day 1 is the day the lead enters the system.
+Day 1 is the day the lead enters the system. Every queue uses `>=` rather than
+`=`, so a day missed because a scenario was paused is picked up on the next run
+instead of being skipped forever.
 
 | Day | Touch | Who gets it | Channel | Queue |
 |---|---|---|---|---|
 | 1 | Connect request, no pitch | everyone with a LinkedIn URL | LinkedIn | `v_abm_due_li_connect` |
-| 2 | Intro message | HOT and WARM with a valid +91 mobile | WhatsApp | `v_abm_due_wa_intro` |
-| 3 to 5 | First real message | anyone who accepted the invite | LinkedIn | `v_abm_due_li_message` |
-| 4 to 6 | Cold call | HOT leads, plus anyone who replied on any channel | phone, human | `v_abm_call_list` |
-| 8 | Follow-up one | still no reply | WhatsApp + LinkedIn | `v_abm_due_wa_followup`, `v_abm_due_li_followup` |
-| 14 | Final follow-up | still no reply | WhatsApp + LinkedIn | `v_abm_due_wa_final`, `v_abm_due_li_final` |
-| 15+ | Stop, park 60 days | still no reply | none | `abm_expire_sequences()` |
+| 2 | Intro | HOT and WARM with a valid +91 mobile | WhatsApp | `v_abm_due_wa_intro` |
+| 3+ | First real message | anyone who accepted the invite | LinkedIn | `v_abm_due_li_message` |
+| 4 to 5 | Cold call | HOT leads, plus anyone who replied anywhere | phone, human | `v_abm_call_list` |
+| 6 | Follow-up | still no reply | WhatsApp + LinkedIn | `v_abm_due_wa_followup`, `v_abm_due_li_followup` |
+| 8 | Final, then stop | still no reply | WhatsApp + LinkedIn | `v_abm_due_wa_final`, `v_abm_due_li_final` |
+| 9+ | Park for 60 days | still no reply | none | `abm_expire_sequences()` |
 
-## A note on "8 day" versus "14 day"
+## Why these days
 
-You said 8-day cadence. Your diagram and your email to Saniel Sir both say 14
-days, with a follow-up on day 8 and a final on day 14. I have built the 14-day
-version, because that is what is being approved.
+This is the 14-day diagram compressed to 8. The touches are all still there,
+they just land sooner. The call window moved from day 4 to 6 down to day 4 to
+5 so it does not collide with the day 6 follow-up, which would have meant
+calling someone the same morning a WhatsApp went out.
 
-If you actually want to compress it to 8 days, it is a one-line change in two
-views: change `>= 14` to `>= 8` in `v_abm_due_wa_final` and `v_abm_due_li_final`,
-and `> 14` to `> 8` in `v_abm_to_expire`. Say the word.
-
-## Why the days are `>=` and not `=`
-
-If a Make scenario is off for a day, an `=` check would skip that touch
-permanently. `>=` means the lead gets it on the next run instead. Nobody falls
-through a gap because something was paused.
+To go back to 14 days: in `db/02_views.sql` change the day 6 checks to 8, the
+day 8 checks to 14, and `> 8` to `> 14` in `v_abm_to_expire`. Nothing else
+changes.
 
 ## What stops a sequence
 
@@ -35,24 +31,40 @@ Any one of these ends it immediately, on every channel at once:
 
 - the lead replies on any channel
 - the lead is on the DNC list
-- the lead reaches day 15 with no reply
+- the lead reaches day 9 with no reply
 - stage moves to `closed_won`, `closed_lost` or `dnc`
 
-This is the cross-channel stop. It did not exist in the first build, where a
-reply on WhatsApp did nothing to the LinkedIn sequence.
+This is the cross-channel stop, and it is enforced by `abm_is_live()`, which
+every send queue filters on. A reply on WhatsApp silences LinkedIn and vice
+versa.
 
-## Volume ceiling per lead
+## Budget per lead
 
-Three WhatsApp messages. Four LinkedIn touches. One call. Over 14 days. That
-is the whole budget and the views enforce it.
+Three WhatsApp messages, four LinkedIn touches, one call, over 8 days. The
+views enforce the ceiling, so no lead can be messaged more than that even if a
+scenario runs twice.
 
-## Scores
+## What each score gets
 
 | Score | LinkedIn | WhatsApp | Call |
 |---|---|---|---|
-| HOT | yes | yes | yes, day 4 to 6 |
+| HOT | yes | yes | yes, day 4 to 5 |
 | WARM | yes | yes | only if they reply |
 | COLD | yes | no | only if they reply |
 
-COLD leads get LinkedIn only. That is deliberate: LinkedIn touches are free
-and low risk, WhatsApp messages cost money and burn goodwill.
+COLD gets LinkedIn only. LinkedIn touches are free and low risk. WhatsApp
+messages cost money and burn goodwill, so they are spent on HOT and WARM.
+
+## Where LinkedIn timing actually lives
+
+Worth being precise about this, because it is the one place the architecture
+is split.
+
+WhatsApp, the call list and all tracking are driven by Supabase. LinkedIn is
+driven by Oppora's own sequence engine, which keeps its own timers, because
+Oppora exposes no "send this one message now" API.
+
+So the LinkedIn day numbers above are configured twice: once in the Oppora
+sequence, and once in the `v_abm_due_li_*` views that mirror it for reporting.
+If you change LinkedIn timing, change it in both. The views are the source of
+truth for reporting, Oppora is the source of truth for sending.

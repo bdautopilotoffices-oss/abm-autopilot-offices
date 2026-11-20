@@ -252,7 +252,7 @@ begin
   with done as (
     update abm_leads l set
       stopped_at = now(),
-      stopped_reason = 'no reply through day 14',
+      stopped_reason = 'no reply through day 8',
       retry_after = current_date + 60,
       stage = case when stage = 'contacted' then 'contacted'::abm_stage else stage end
     where l.id in (select id from v_abm_to_expire)
